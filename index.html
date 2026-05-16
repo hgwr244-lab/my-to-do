@@ -3,92 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ローカル一元管理アプリ - Step 3</title>
+    <title>ローカル一元管理アプリ - Step 4</title>
     <style>
-        body { font-family: sans-serif; padding: 15px; background: #f5f5f5; color: #333; margin: 0; }
-        .container { max-width: 450px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); box-sizing: border-box; }
+        body { font-family: sans-serif; padding: 15px; background: #f5f5f7; color: #333; margin: 0; }
+        .container { max-width: 450px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); box-sizing: border-box; min-height: 90vh; display: flex; flex-direction: column; }
         
-        /* カレンダーのスタイル */
+        /* タブ切り替えボタンのスタイル */
+        .tab-menu { display: flex; background: #eee; padding: 4px; border-radius: 8px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; font-size: 14px; font-weight: bold; color: #666; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+        .tab-btn.active { background: white; color: #007aff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+        /* 各タブの表示・非表示制御 */
+        .tab-content { display: none; flex: 1; }
+        .tab-content.active { display: block; }
+
+        /* カレンダータブのスタイル */
         .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; margin-bottom: 20px; }
         .weekday { font-size: 12px; font-weight: bold; color: #666; padding-bottom: 5px; }
-        .day { padding: 10px 0; font-size: 14px; border-radius: 5px; cursor: pointer; position: relative; background: #f9f9f9; }
+        .day { padding: 12px 0; font-size: 14px; border-radius: 6px; cursor: pointer; position: relative; background: #f9f9fb; }
         .day:active { background: #eee; }
         .day.selected { background: #007aff; color: white; font-weight: bold; }
         .day.empty { background: transparent; cursor: default; }
-        /* 記録（タスクや日記）がある日のドット */
-        .has-record::after { content: ''; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background: #34c759; border-radius: 50%; }
+        .has-record::after { content: ''; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background: #34c759; border-radius: 50%; }
         .day.selected.has-record::after { background: white; }
 
-        /* コンテンツセクション */
-        .content-section { border-top: 2px solid #eee; padding-top: 15px; }
+        /* 記録エリア（カレンダー下部） */
+        .content-section { border-top: 2px solid #eee; padding-top: 15px; margin-top: 15px; }
         .selected-date-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; color: #007aff; }
-        
         h3 { font-size: 14px; color: #666; margin: 15px 0 5px 0; border-left: 3px solid #007aff; padding-left: 8px; }
-
-        /* 日記（自由記述欄）のスタイル */
-        textarea { width: 100%; height: 80px; padding: 10px; font-size: 15px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; resize: none; font-family: sans-serif; }
+        textarea { width: 100%; height: 100px; padding: 10px; font-size: 15px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; resize: none; }
         
-        /* タスクのスタイル */
+        /* タスク用共通スタイル */
         .input-area { display: flex; gap: 10px; margin-bottom: 10px; margin-top: 5px; }
-        input[type="text"] { flex: 1; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; }
-        button { padding: 10px 15px; font-size: 15px; background: #007aff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        .save-btn { background: #34c759; width: 100%; margin-top: 5px; padding: 8px; font-size: 14px; }
-        
+        input[type="text"] { flex: 1; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; }
+        button { padding: 10px 15px; font-size: 15px; background: #007aff; color: white; border: none; border-radius: 6px; cursor: pointer; }
         ul { list-style: none; padding: 0; margin: 0; }
-        li { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; font-size: 15px; }
-        .delete-btn { background: #ff3b30; padding: 3px 8px; font-size: 12px; }
+        li { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; font-size: 15px; }
+        .delete-btn { background: #ff3b30; padding: 4px 8px; font-size: 12px; border-radius: 4px; }
+
+        /* メモタブ（付箋・カードグリッド）のスタイル */
+        .memo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .memo-card { background: #fff9c4; padding: 12px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; height: 110px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; border: 1px solid #f0e68c; }
+        .memo-card:active { transform: scale(0.98); }
+        .memo-date { font-size: 11px; color: #777; font-weight: bold; margin-bottom: 4px; }
+        .memo-snippet { font-size: 13px; color: #333; line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; flex-content: 1; }
+        .no-data-msg { grid-column: span 2; text-align: center; color: #999; font-size: 14px; padding: 4px 0; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- カレンダー -->
-    <div class="calendar-header">
-        <button onclick="changeMonth(-1)">◀</button>
-        <span id="calendarTitle">2026年5月</span>
-        <button onclick="changeMonth(1)">▶</button>
+    <!-- タブメニュー -->
+    <div class="tab-menu">
+        <button class="tab-btn active" onclick="switchTab('calendar')">カレンダー</button>
+        <button class="tab-btn" onclick="switchTab('memos')">メモ一覧</button>
+        <button class="tab-btn" onclick="switchTab('tasks')">タスク一覧</button>
     </div>
-    <div class="calendar-grid" id="calendarGrid"></div>
 
-    <!-- 記録エリア -->
-    <div class="content-section">
-        <div class="selected-date-title" id="selectedDateTitle">選択された日付: -----</div>
-        
-        <!-- 日記・メモ欄 -->
-        <h3>今日の日記・思考メモ</h3>
-        <textarea id="diaryInput" placeholder="今日気づいたこと、残しておきたいこと..." oninput="saveDiary()"></textarea>
-
-        <!-- タスク（やったこと）欄 -->
-        <h3>タスク・実績</h3>
-        <div class="input-area">
-            <input type="text" id="taskInput" placeholder="タスクを入力...">
-            <button onclick="addTask()">追加</button>
+    <!-- 1. カレンダー タブ -->
+    <div id="tab-calendar" class="tab-content active">
+        <div class="calendar-header">
+            <button onclick="changeMonth(-1)">◀</button>
+            <span id="calendarTitle">----年--月</span>
+            <button onclick="changeMonth(1)">▶</button>
         </div>
-        <ul id="taskList"></ul>
+        <div class="calendar-grid" id="calendarGrid"></div>
+
+        <div class="content-section">
+            <div class="selected-date-title" id="selectedDateTitle">選択された日付: -----</div>
+            <h3>今日の日記・思考メモ</h3>
+            <textarea id="diaryInput" placeholder="今日気づいたこと、残しておきたいこと..." oninput="saveDiary()"></textarea>
+
+            <h3>この日のタスク</h3>
+            <div class="input-area">
+                <input type="text" id="taskInput" placeholder="タスクを追加...">
+                <button onclick="addTask('calendar')">追加</button>
+            </div>
+            <ul id="taskList"></ul>
+        </div>
+    </div>
+
+    <!-- 2. メモ（付箋） タブ -->
+    <div id="tab-memos" class="tab-content">
+        <div class="memo-grid" id="memoGrid">
+            <!-- JavaScriptで付箋カードが並びます -->
+        </div>
+    </div>
+
+    <!-- 3. 全タスク タブ -->
+    <div id="tab-tasks" class="tab-content">
+        <h3>全期間のタスク</h3>
+        <ul id="allTaskList">
+            <!-- JavaScriptで全日付のタスクが並びます -->
+        </div>
     </div>
 </div>
 
 <script>
-    // データの持ち方を拡張
-    // 構造のイメージ:
-    // todoData = {
-    //    "2026-05-16": {
-    //        diary: "ここに日記の文章が入る",
-    //        tasks: ["タスク1", "タスク2"]
-    //    }
-    // };
     let todoData = {};
-    
     let currentDisplayDate = new Date(); 
     let selectedDateStr = "";
 
+    // DOM要素
     const calendarTitle = document.getElementById('calendarTitle');
     const calendarGrid = document.getElementById('calendarGrid');
     const selectedDateTitle = document.getElementById('selectedDateTitle');
     const diaryInput = document.getElementById('diaryInput');
     const taskInput = document.getElementById('taskInput');
     const taskList = document.getElementById('taskList');
+    const memoGrid = document.getElementById('memoGrid');
+    const allTaskList = document.getElementById('allTaskList');
 
     function initApp() {
         const savedData = localStorage.getItem('myLocalTodoApp');
@@ -96,7 +121,7 @@
             todoData = JSON.parse(savedData);
         }
         
-        // 過去の古いデータ構造（配列だった場合）からの移行ケア
+        // データの互換性調整
         for (let key in todoData) {
             if (Array.isArray(todoData[key])) {
                 todoData[key] = { diary: "", tasks: todoData[key] };
@@ -115,6 +140,34 @@
         return `${y}-${m}-${d}`;
     }
 
+    // タブ切り替え処理
+    function switchTab(tabName) {
+        // ボタンのスタイル切り替え
+        const buttons = document.querySelectorAll('.tab-btn');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        
+        // コンテンツの切り替え
+        const contents = document.querySelectorAll('.tab-content');
+        contents.forEach(content => content.classList.remove('active'));
+
+        if (tabName === 'calendar') {
+            buttons[0].classList.add('active');
+            document.getElementById('tab-calendar').add('active');
+            document.getElementById('tab-calendar').classList.add('active');
+            renderCalendar();
+            renderActiveDateData();
+        } else if (tabName === 'memos') {
+            buttons[1].classList.add('active');
+            document.getElementById('tab-memos').classList.add('active');
+            renderMemoGrid();
+        } else if (tabName === 'tasks') {
+            buttons[2].classList.add('active');
+            document.getElementById('tab-tasks').classList.add('active');
+            renderAllTasks();
+        }
+    }
+
+    // --- 1. カレンダー関連の描画 ---
     function renderCalendar() {
         calendarGrid.innerHTML = '';
         const year = currentDisplayDate.getFullYear();
@@ -152,7 +205,6 @@
                 dayDiv.classList.add('selected');
             }
 
-            // 日記がある、またはタスクがある場合にカレンダーに緑のドットを表示
             const dayData = todoData[thisDateStr];
             if (dayData && ((dayData.diary && dayData.diary.trim() !== "") || (dayData.tasks && dayData.tasks.length > 0))) {
                 dayDiv.classList.add('has-record');
@@ -168,47 +220,101 @@
         }
     }
 
-    // 選択された日付のすべてのデータ（日記 ＋ タスク）を描画する
     function renderActiveDateData() {
         selectedDateTitle.innerText = `選択された日付: ${selectedDateStr}`;
         
-        // 1. 日記の読み込み
         if (todoData[selectedDateStr] && todoData[selectedDateStr].diary) {
             diaryInput.value = todoData[selectedDateStr].diary;
         } else {
-            diaryInput.value = ''; // データがなければ空にする
+            diaryInput.value = '';
         }
 
-        // 2. タスクリストの読み込み
         taskList.innerHTML = '';
         if (todoData[selectedDateStr] && todoData[selectedDateStr].tasks) {
             todoData[selectedDateStr].tasks.forEach((taskText, index) => {
                 const li = document.createElement('li');
                 li.innerHTML = `
                     <span>${taskText}</span>
-                    <button class="delete-btn" onclick="deleteTask(${index})">削除</button>
+                    <button class="delete-btn" onclick="deleteTask(${index}, 'calendar')">削除</button>
                 `;
                 taskList.appendChild(li);
             });
         }
     }
 
-    // 日記を入力するたびに自動保存する（ボタンを押さなくても保存される仕様）
+    // --- 2. メモ一覧（付箋風カード）の描画 ---
+    function renderMemoGrid() {
+        memoGrid.innerHTML = '';
+        
+        // 日付の降順（新しい順）で並び替えるためにキーをソート
+        const sortedDates = Object.keys(todoData).sort((a, b) => new Date(b) - new Date(a));
+        let count = 0;
+
+        sortedDates.forEach(dateStr => {
+            const data = todoData[dateStr];
+            if (data && data.diary && data.diary.trim() !== "") {
+                count++;
+                const card = document.createElement('div');
+                card.className = 'memo-card';
+                
+                // カードタップでその日のカレンダー画面に飛ぶ
+                card.onclick = () => {
+                    selectedDateStr = dateStr;
+                    currentDisplayDate = new Date(dateStr); // カレンダーの表示月も合わせる
+                    switchTab('calendar');
+                };
+
+                card.innerHTML = `
+                    <div class="memo-date">${dateStr}</div>
+                    <div class="memo-snippet">${escapeHtml(data.diary)}</div>
+                `;
+                memoGrid.appendChild(card);
+            }
+        });
+
+        if (count === 0) {
+            memoGrid.innerHTML = '<div class="no-data-msg">書かれたメモ・日記はありません。</div>';
+        }
+    }
+
+    // --- 3. 全タスクの描画 ---
+    function renderAllTasks() {
+        allTaskList.innerHTML = '';
+        const sortedDates = Object.keys(todoData).sort((a, b) => new Date(b) - new Date(a));
+        let count = 0;
+
+        sortedDates.forEach(dateStr => {
+            const data = todoData[dateStr];
+            if (data && data.tasks && data.tasks.length > 0) {
+                data.tasks.forEach((taskText, index) => {
+                    count++;
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <div>
+                            <span style="font-size: 11px; color:#888; display:block;">${dateStr}</span>
+                            <span>${taskText}</span>
+                        </div>
+                        <button class="delete-btn" onclick="deleteTask(${index}, 'tasks', '${dateStr}')">削除</button>
+                    `;
+                    allTaskList.appendChild(li);
+                });
+            }
+        });
+
+        if (count === 0) {
+            allTaskList.innerHTML = '<div class="no-data-msg">タスクはありません。</div>';
+        }
+    }
+
+    // データの変更・保存処理
     function saveDiary() {
         prepareDateKey();
         todoData[selectedDateStr].diary = diaryInput.value;
-        
-        // 文字数がゼロ、かつタスクも空ならオブジェクトを綺麗にする
         cleanEmptyKey();
-        
         saveToLocalStorage();
-        // カレンダーのドットの有無をリアルタイムに更新するため、カレンダーのみリライト
-        // ただし入力中のカーソルが外れないよう、文字入力時はクラスの付け替えだけにするのが理想ですが、今回はシンプルに再描画します
-        renderCalendar(); 
     }
 
-    // タスクを追加
-    function addTask() {
+    function addTask(fromSrc) {
         const text = taskInput.value.trim();
         if (text === '') return;
 
@@ -221,32 +327,35 @@
         renderActiveDateData();
     }
 
-    // タスクを削除
-    function deleteTask(index) {
-        if (todoData[selectedDateStr] && todoData[selectedDateStr].tasks) {
-            todoData[selectedDateStr].tasks.splice(index, 1);
-            cleanEmptyKey();
+    function deleteTask(index, fromSrc, targetDate = null) {
+        const dateKey = targetDate ? targetDate : selectedDateStr;
+        if (todoData[dateKey] && todoData[dateKey].tasks) {
+            todoData[dateKey].tasks.splice(index, 1);
+            cleanEmptyKey(dateKey);
             saveToLocalStorage();
-            renderCalendar();
-            renderActiveDateData();
+            
+            // どのタブから消されたかに応じて、画面をリフレッシュ
+            if (fromSrc === 'calendar') {
+                renderCalendar();
+                renderActiveDateData();
+            } else if (fromSrc === 'tasks') {
+                renderAllTasks();
+            }
         }
     }
 
-    // 指定された日付のデータ枠を安全に用意するヘルパー
     function prepareDateKey() {
         if (!todoData[selectedDateStr]) {
             todoData[selectedDateStr] = { diary: "", tasks: [] };
         }
     }
 
-    // 中身が完全に空になった日付のデータを削除して容量を節約するヘルパー
-    function cleanEmptyKey() {
-        const data = todoData[selectedDateStr];
+    function cleanEmptyKey(dateKey = null) {
+        const key = dateKey ? dateKey : selectedDateStr;
+        const data = todoData[key];
         if (data) {
-            const hasNoDiary = !data.diary || data.diary.trim() === "";
-            const hasNoTasks = !data.tasks || data.tasks.length === 0;
-            if (hasNoDiary && hasNoTasks) {
-                delete todoData[selectedDateStr];
+            if ((!data.diary || data.diary.trim() === "") && (!data.tasks || data.tasks.length === 0)) {
+                delete todoData[key];
             }
         }
     }
@@ -258,6 +367,11 @@
     function changeMonth(offset) {
         currentDisplayDate.setMonth(currentDisplayDate.getMonth() + offset);
         renderCalendar();
+    }
+
+    // HTMLエスケープ（セキュリティ対策）
+    function escapeHtml(str) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
     initApp();
