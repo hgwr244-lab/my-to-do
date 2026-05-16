@@ -140,20 +140,22 @@
         return `${y}-${m}-${d}`;
     }
 
-    // タブ切り替え処理
+	// タブ切り替え処理（修正版）
     function switchTab(tabName) {
-        // ボタンのスタイル切り替え
+        // 全ボタンのスタイルを一度クリア
         const buttons = document.querySelectorAll('.tab-btn');
         buttons.forEach(btn => btn.classList.remove('active'));
         
-        // コンテンツの切り替え
+        // 全コンテンツを一度非表示にする
         const contents = document.querySelectorAll('.tab-content');
         contents.forEach(content => content.classList.remove('active'));
 
+        // 選ばれたタブに応じた処理
         if (tabName === 'calendar') {
             buttons[0].classList.add('active');
-            document.getElementById('tab-calendar').add('active');
             document.getElementById('tab-calendar').classList.add('active');
+            
+            // カレンダーと下部エリアを強制的に最新状態にリフレッシュする
             renderCalendar();
             renderActiveDateData();
         } else if (tabName === 'memos') {
