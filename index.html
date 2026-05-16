@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ローカル一元管理アプリ - Step 2</title>
+    <title>ローカル一元管理アプリ - Step 3</title>
     <style>
         body { font-family: sans-serif; padding: 15px; background: #f5f5f5; color: #333; margin: 0; }
-        .container { max-width: 400px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); box-sizing: border-box; }
+        .container { max-width: 450px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); box-sizing: border-box; }
         
         /* カレンダーのスタイル */
         .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; }
@@ -16,39 +16,53 @@
         .day:active { background: #eee; }
         .day.selected { background: #007aff; color: white; font-weight: bold; }
         .day.empty { background: transparent; cursor: default; }
-        /* タスクがある日に表示する小さなドット（点） */
-        .has-task::after { content: ''; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background: #ff9500; border-radius: 50%; }
-        .day.selected.has-task::after { background: white; } /* 選択中はドットを白に */
+        /* 記録（タスクや日記）がある日のドット */
+        .has-record::after { content: ''; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background: #34c759; border-radius: 50%; }
+        .day.selected.has-record::after { background: white; }
 
-        /* タスク入力・一覧のスタイル */
-        .todo-section { border-top: 2px solid #eee; padding-top: 15px; }
-        .selected-date-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #007aff; }
-        .input-area { display: flex; gap: 10px; margin-bottom: 15px; }
+        /* コンテンツセクション */
+        .content-section { border-top: 2px solid #eee; padding-top: 15px; }
+        .selected-date-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; color: #007aff; }
+        
+        h3 { font-size: 14px; color: #666; margin: 15px 0 5px 0; border-left: 3px solid #007aff; padding-left: 8px; }
+
+        /* 日記（自由記述欄）のスタイル */
+        textarea { width: 100%; height: 80px; padding: 10px; font-size: 15px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; resize: none; font-family: sans-serif; }
+        
+        /* タスクのスタイル */
+        .input-area { display: flex; gap: 10px; margin-bottom: 10px; margin-top: 5px; }
         input[type="text"] { flex: 1; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; }
-        button { padding: 10px 15px; font-size: 16px; background: #007aff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button { padding: 10px 15px; font-size: 15px; background: #007aff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .save-btn { background: #34c759; width: 100%; margin-top: 5px; padding: 8px; font-size: 14px; }
+        
         ul { list-style: none; padding: 0; margin: 0; }
-        li { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-        .delete-btn { background: #ff3b30; padding: 5px 10px; font-size: 14px; }
+        li { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; font-size: 15px; }
+        .delete-btn { background: #ff3b30; padding: 3px 8px; font-size: 12px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- カレンダー部分 -->
+    <!-- カレンダー -->
     <div class="calendar-header">
         <button onclick="changeMonth(-1)">◀</button>
         <span id="calendarTitle">2026年5月</span>
         <button onclick="changeMonth(1)">▶</button>
     </div>
-    <div class="calendar-grid" id="calendarGrid">
-        <!-- ここにJavaScriptで曜日と日付が自動挿入されます -->
-    </div>
+    <div class="calendar-grid" id="calendarGrid"></div>
 
-    <!-- タスク管理部分 -->
-    <div class="todo-section">
+    <!-- 記録エリア -->
+    <div class="content-section">
         <div class="selected-date-title" id="selectedDateTitle">選択された日付: -----</div>
+        
+        <!-- 日記・メモ欄 -->
+        <h3>今日の日記・思考メモ</h3>
+        <textarea id="diaryInput" placeholder="今日気づいたこと、残しておきたいこと..." oninput="saveDiary()"></textarea>
+
+        <!-- タスク（やったこと）欄 -->
+        <h3>タスク・実績</h3>
         <div class="input-area">
-            <input type="text" id="taskInput" placeholder="タスクを追加...">
+            <input type="text" id="taskInput" placeholder="タスクを入力...">
             <button onclick="addTask()">追加</button>
         </div>
         <ul id="taskList"></ul>
@@ -56,34 +70,44 @@
 </div>
 
 <script>
+    // データの持ち方を拡張
+    // 構造のイメージ:
+    // todoData = {
+    //    "2026-05-16": {
+    //        diary: "ここに日記の文章が入る",
+    //        tasks: ["タスク1", "タスク2"]
+    //    }
+    // };
     let todoData = {};
     
-    // カレンダーの表示管理用の日付オブジェクト（初期値は今日）
     let currentDisplayDate = new Date(); 
-    // 現在ユーザーが選択している日付（文字列: YYYY-MM-DD）
     let selectedDateStr = "";
 
     const calendarTitle = document.getElementById('calendarTitle');
     const calendarGrid = document.getElementById('calendarGrid');
     const selectedDateTitle = document.getElementById('selectedDateTitle');
+    const diaryInput = document.getElementById('diaryInput');
     const taskInput = document.getElementById('taskInput');
     const taskList = document.getElementById('taskList');
 
-    // アプリの起動
     function initApp() {
         const savedData = localStorage.getItem('myLocalTodoApp');
         if (savedData) {
             todoData = JSON.parse(savedData);
         }
         
-        // 初期選択日を今日の「YYYY-MM-DD」に設定
+        // 過去の古いデータ構造（配列だった場合）からの移行ケア
+        for (let key in todoData) {
+            if (Array.isArray(todoData[key])) {
+                todoData[key] = { diary: "", tasks: todoData[key] };
+            }
+        }
+
         selectedDateStr = formatDate(new Date());
-        
         renderCalendar();
-        renderTasks();
+        renderActiveDateData();
     }
 
-    // Dateオブジェクトを "YYYY-MM-DD" の文字列に変換するヘルパー関数
     function formatDate(dateObj) {
         const y = dateObj.getFullYear();
         const m = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -91,17 +115,13 @@
         return `${y}-${m}-${d}`;
     }
 
-    // カレンダーを描画する処理
     function renderCalendar() {
-        calendarGrid.innerHTML = ''; // クリア
-        
+        calendarGrid.innerHTML = '';
         const year = currentDisplayDate.getFullYear();
-        const month = currentDisplayDate.getMonth(); // 0が1月、4が5月
+        const month = currentDisplayDate.getMonth();
         
-        // ヘッダーの見出しを更新
         calendarTitle.innerText = `${year}年${month + 1}月`;
 
-        // 曜日のラベルを配置
         const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
         weekdays.forEach(w => {
             const div = document.createElement('div');
@@ -110,56 +130,59 @@
             calendarGrid.appendChild(div);
         });
 
-        // 今月の1日と、最後の日（総日数）を計算
         const firstDayOfMonth = new Date(year, month, 1);
-        const startWeekday = firstDayOfMonth.getDay(); // 1日の曜日 (0:日〜6:土)
+        const startWeekday = firstDayOfMonth.getDay();
         const lastDayOfMonth = new Date(year, month + 1, 0);
-        const totalDays = lastDayOfMonth.getDate(); // 今月が何日あるか（28〜31）
+        const totalDays = lastDayOfMonth.getDate();
 
-        // 1日が始まる前の空白のマス目を埋める
         for (let i = 0; i < startWeekday; i++) {
             const emptyDiv = document.createElement('div');
             emptyDiv.className = 'day empty';
             calendarGrid.appendChild(emptyDiv);
         }
 
-        // 日付のマス目を1日から順に作成
         for (let day = 1; day <= totalDays; day++) {
             const dayDiv = document.createElement('div');
             dayDiv.className = 'day';
             dayDiv.innerText = day;
 
-            // このマス目の日付文字列を作る
             const thisDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-            // 選択中の日付なら色を変える
             if (thisDateStr === selectedDateStr) {
                 dayDiv.classList.add('selected');
             }
 
-            // この日にタスクが1つ以上あれば、ドットを表示するクラスを追加
-            if (todoData[thisDateStr] && todoData[thisDateStr].length > 0) {
-                dayDiv.classList.add('has-task');
+            // 日記がある、またはタスクがある場合にカレンダーに緑のドットを表示
+            const dayData = todoData[thisDateStr];
+            if (dayData && ((dayData.diary && dayData.diary.trim() !== "") || (dayData.tasks && dayData.tasks.length > 0))) {
+                dayDiv.classList.add('has-record');
             }
 
-            // 日付をタップした時の処理
             dayDiv.onclick = () => {
                 selectedDateStr = thisDateStr;
-                renderCalendar(); // カレンダーの選択色を更新するために再描画
-                renderTasks();    // 下部のタスク一覧を切り替え
+                renderCalendar();
+                renderActiveDateData();
             };
 
             calendarGrid.appendChild(dayDiv);
         }
     }
 
-    // 選択された日付のタスク一覧を描画
-    function renderTasks() {
+    // 選択された日付のすべてのデータ（日記 ＋ タスク）を描画する
+    function renderActiveDateData() {
         selectedDateTitle.innerText = `選択された日付: ${selectedDateStr}`;
-        taskList.innerHTML = '';
+        
+        // 1. 日記の読み込み
+        if (todoData[selectedDateStr] && todoData[selectedDateStr].diary) {
+            diaryInput.value = todoData[selectedDateStr].diary;
+        } else {
+            diaryInput.value = ''; // データがなければ空にする
+        }
 
-        if (todoData[selectedDateStr]) {
-            todoData[selectedDateStr].forEach((taskText, index) => {
+        // 2. タスクリストの読み込み
+        taskList.innerHTML = '';
+        if (todoData[selectedDateStr] && todoData[selectedDateStr].tasks) {
+            todoData[selectedDateStr].tasks.forEach((taskText, index) => {
                 const li = document.createElement('li');
                 li.innerHTML = `
                     <span>${taskText}</span>
@@ -170,45 +193,73 @@
         }
     }
 
+    // 日記を入力するたびに自動保存する（ボタンを押さなくても保存される仕様）
+    function saveDiary() {
+        prepareDateKey();
+        todoData[selectedDateStr].diary = diaryInput.value;
+        
+        // 文字数がゼロ、かつタスクも空ならオブジェクトを綺麗にする
+        cleanEmptyKey();
+        
+        saveToLocalStorage();
+        // カレンダーのドットの有無をリアルタイムに更新するため、カレンダーのみリライト
+        // ただし入力中のカーソルが外れないよう、文字入力時はクラスの付け替えだけにするのが理想ですが、今回はシンプルに再描画します
+        renderCalendar(); 
+    }
+
     // タスクを追加
     function addTask() {
         const text = taskInput.value.trim();
         if (text === '') return;
 
-        if (!todoData[selectedDateStr]) {
-            todoData[selectedDateStr] = [];
-        }
-
-        todoData[selectedDateStr].push(text);
-        saveToLocalStorage();
+        prepareDateKey();
+        todoData[selectedDateStr].tasks.push(text);
         
+        saveToLocalStorage();
         taskInput.value = '';
-        renderCalendar(); // カレンダーの「ドット（点）」を反映させるために再描画
-        renderTasks();
+        renderCalendar();
+        renderActiveDateData();
     }
 
     // タスクを削除
     function deleteTask(index) {
-        todoData[selectedDateStr].splice(index, 1);
-        if (todoData[selectedDateStr].length === 0) {
-            delete todoData[selectedDateStr];
+        if (todoData[selectedDateStr] && todoData[selectedDateStr].tasks) {
+            todoData[selectedDateStr].tasks.splice(index, 1);
+            cleanEmptyKey();
+            saveToLocalStorage();
+            renderCalendar();
+            renderActiveDateData();
         }
-        saveToLocalStorage();
-        renderCalendar(); // カレンダーの「ドット（点）」を消すために再描画
-        renderTasks();
+    }
+
+    // 指定された日付のデータ枠を安全に用意するヘルパー
+    function prepareDateKey() {
+        if (!todoData[selectedDateStr]) {
+            todoData[selectedDateStr] = { diary: "", tasks: [] };
+        }
+    }
+
+    // 中身が完全に空になった日付のデータを削除して容量を節約するヘルパー
+    function cleanEmptyKey() {
+        const data = todoData[selectedDateStr];
+        if (data) {
+            const hasNoDiary = !data.diary || data.diary.trim() === "";
+            const hasNoTasks = !data.tasks || data.tasks.length === 0;
+            if (hasNoDiary && hasNoTasks) {
+                delete todoData[selectedDateStr];
+            }
+        }
     }
 
     function saveToLocalStorage() {
         localStorage.setItem('myLocalTodoApp', JSON.stringify(todoData));
     }
 
-    // カレンダーの「前月」「次月」ボタンを押したときの処理
     function changeMonth(offset) {
         currentDisplayDate.setMonth(currentDisplayDate.getMonth() + offset);
         renderCalendar();
     }
 
-    // アプリ起動
     initApp();
 </script>
 
