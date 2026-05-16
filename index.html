@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ローカル一元管理アプリ - Step 6</title>
+    <title>ローカル一元管理アプリ - Step 7</title>
     <style>
         body { font-family: sans-serif; padding: 15px; background: #f5f5f7; color: #333; margin: 0; }
         .container { max-width: 450px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); box-sizing: border-box; min-height: 90vh; display: flex; flex-direction: column; }
@@ -39,12 +39,29 @@
         input[type="text"] { flex: 1; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; }
         button { padding: 10px 15px; font-size: 15px; background: #007aff; color: white; border: none; border-radius: 6px; cursor: pointer; }
         ul { list-style: none; padding: 0; margin: 0; }
-        li { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; font-size: 15px; }
-        .delete-btn { background: #ff3b30; padding: 4px 8px; font-size: 12px; border-radius: 4px; }
+        
+        /* タスクのリスト表示（色分け対応） */
+        li { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; font-size: 15px; margin-bottom: 4px; border-radius: 6px; }
+        .delete-btn { background: #ff3b30; padding: 4px 8px; font-size: 12px; border-radius: 4px; color: white; }
 
-        /* 並べ替えコントロール（新設） */
-        .sort-control { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 15px; font-size: 13px; color: #666; }
-        .sort-select { padding: 6px 10px; font-size: 13px; border: 1px solid #ccc; border-radius: 6px; background: white; color: #333; cursor: pointer; outline: none; }
+        /* 緊急度に応じたカラークラス */
+        li.priority-high { background-color: #ffebee; border-left: 5px solid #ff3b30; }   /* 赤 */
+        li.priority-middle { background-color: #e3f2fd; border-left: 5px solid #007aff; } /* 青 */
+        li.priority-low { background-color: #e8f5e9; border-left: 5px solid #34c759; }    /* 緑 */
+
+        /* タスク登録時の緊急度選択用ラジオボタン（横並び） */
+        .priority-selector { display: flex; gap: 15px; margin: 8px 0; font-size: 14px; align-items: center; }
+        .priority-label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+        .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; }
+        .dot.high { background: #ff3b30; }
+        .dot.middle { background: #007aff; }
+        .dot.low { background: #34c759; }
+
+        /* コントロールパネル（ソート・フィルタ用共通） */
+        .controls-panel { background: #f9f9fb; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee; }
+        .control-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #666; margin-bottom: 8px; }
+        .control-row:last-child { margin-bottom: 0; }
+        .control-select { padding: 5px 8px; font-size: 13px; border: 1px solid #ccc; border-radius: 6px; background: white; color: #333; cursor: pointer; outline: none; }
 
         /* メモタブ（アコーディオン付箋リスト） */
         .memo-list { display: flex; flex-direction: column; gap: 12px; }
@@ -52,17 +69,19 @@
         .memo-date { font-size: 12px; color: #777; font-weight: bold; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
         
         .memo-card .memo-snippet { font-size: 14px; color: #333; line-height: 1.5; white-space: pre-wrap; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
-        
         .memo-card.open { background: #ffffff; border-color: #007aff; box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: default; }
         .memo-card.open .memo-snippet { display: block; -webkit-line-clamp: unset; }
-        
         .memo-expanded-area { display: none; margin-top: 15px; padding-top: 12px; border-top: 1px dashed #ddd; }
         .memo-card.open .memo-expanded-area { display: block; }
         
         .jump-link { display: inline-block; font-size: 12px; color: #007aff; text-decoration: none; font-weight: bold; background: #e3f2fd; padding: 6px 12px; border-radius: 4px; margin-top: 10px; cursor: pointer; }
-        .inline-task-list { font-size: 13px; color: #555; background: #f9f9f9; padding: 8px 12px; border-radius: 6px; margin-top: 5px; }
+        .inline-task-list { font-size: 13px; color: #555; background: #f9f9f9; padding: 6px 12px; border-radius: 6px; margin-top: 5px; }
+        .inline-task-item { margin-bottom: 4px; padding: 3px 6px; border-radius: 4px; }
+        .inline-task-item.high { background: #ffebee; border-left: 3px solid #ff3b30; }
+        .inline-task-item.middle { background: #e3f2fd; border-left: 3px solid #007aff; }
+        .inline-task-item.low { background: #e8f5e9; border-left: 3px solid #34c759; }
+        
         h4 { margin: 10px 0 5px 0; font-size: 13px; color: #444; }
-
         .no-data-msg { text-align: center; color: #999; font-size: 14px; padding: 20px 0; }
     </style>
 </head>
@@ -91,6 +110,13 @@
             <textarea id="diaryInput" placeholder="今日気づいたこと、残しておきたいこと..." oninput="saveDiary()"></textarea>
 
             <h3>この日のタスク</h3>
+            <!-- 緊急度選択ラジオボタンの新設 -->
+            <div class="priority-selector">
+                <span>緊急度:</span>
+                <label class="priority-label"><input type="radio" name="priority" value="high" checked><span class="dot high"></span>高</label>
+                <label class="priority-label"><input type="radio" name="priority" value="middle"><span class="dot middle"></span>中</label>
+                <label class="priority-label"><input type="radio" name="priority" value="low"><span class="dot low"></span>低</label>
+            </div>
             <div class="input-area">
                 <input type="text" id="taskInput" placeholder="タスクを追加...">
                 <button onclick="addTask()">追加</button>
@@ -101,20 +127,40 @@
 
     <!-- 2. メモ タブ -->
     <div id="tab-memos" class="tab-content">
-        <!-- 並べ替え用の選択メニューを新設 -->
-        <div class="sort-control">
-            <label for="memoSortSelect">並べ替え:</label>
-            <select id="memoSortSelect" class="sort-select" onchange="renderMemoGrid()">
-                <option value="newest">日付の新しい順</option>
-                <option value="oldest">日付の古い順</option>
-            </select>
+        <div class="controls-panel">
+            <div class="control-row">
+                <label for="memoSortSelect">並べ替え:</label>
+                <select id="memoSortSelect" class="control-select" onchange="renderMemoGrid()">
+                    <option value="newest">日付の新しい順</option>
+                    <option value="oldest">日付の古い順</option>
+                </select>
+            </div>
         </div>
         <div class="memo-list" id="memoGrid"></div>
     </div>
 
     <!-- 3. 全タスク タブ -->
     <div id="tab-tasks" class="tab-content">
-        <h3>全期間のタスク</h3>
+        <!-- ソートとフィルタのコントロールパネルを新設 -->
+        <div class="controls-panel">
+            <div class="control-row">
+                <label for="taskSortSelect">並べ替え:</label>
+                <select id="taskSortSelect" class="control-select" onchange="renderAllTasks()">
+                    <option value="newest">日付の新しい順</option>
+                    <option value="oldest">日付の古い順</option>
+                    <option value="priority">緊急度の高い順</option>
+                </select>
+            </div>
+            <div class="control-row">
+                <label for="taskFilterSelect">絞り込み:</label>
+                <select id="taskFilterSelect" class="control-select" onchange="renderAllTasks()">
+                    <option value="all">すべてのタスク</option>
+                    <option value="high">高（赤）のみ</option>
+                    <option value="middle">中（青）のみ</option>
+                    <option value="low">低（緑）のみ</option>
+                </select>
+            </div>
+        </div>
         <ul id="allTaskList"></ul>
     </div>
 </div>
@@ -132,7 +178,9 @@
     const taskList = document.getElementById('taskList');
     const memoGrid = document.getElementById('memoGrid');
     const allTaskList = document.getElementById('allTaskList');
-    const memoSortSelect = document.getElementById('memoSortSelect'); // 新設
+    const memoSortSelect = document.getElementById('memoSortSelect');
+    const taskSortSelect = document.getElementById('taskSortSelect');     // 新設
+    const taskFilterSelect = document.getElementById('taskFilterSelect'); // 新設
 
     function initApp() {
         const savedData = localStorage.getItem('myLocalTodoApp');
@@ -140,9 +188,12 @@
             todoData = JSON.parse(savedData);
         }
         
+        // 旧データ（文字列だけの配列）をオブジェクト構造に一元移行
         for (let key in todoData) {
             if (Array.isArray(todoData[key])) {
-                todoData[key] = { diary: "", tasks: todoData[key] };
+                todoData[key] = { diary: "", tasks: todoData[key].map(t => typeof t === 'string' ? {text: t, priority: 'high'} : t) };
+            } else if (todoData[key].tasks) {
+                todoData[key].tasks = todoData[key].tasks.map(t => typeof t === 'string' ? {text: t, priority: 'high'} : t);
             }
         }
 
@@ -245,10 +296,11 @@
 
         taskList.innerHTML = '';
         if (todoData[selectedDateStr] && todoData[selectedDateStr].tasks) {
-            todoData[selectedDateStr].tasks.forEach((taskText, index) => {
+            todoData[selectedDateStr].tasks.forEach((taskObj, index) => {
                 const li = document.createElement('li');
+                li.className = `priority-${taskObj.priority}`; // 色クラスを適用
                 li.innerHTML = `
-                    <span>${taskText}</span>
+                    <span>${escapeHtml(taskObj.text)}</span>
                     <button class="delete-btn" onclick="deleteTask(${index}, 'calendar')">削除</button>
                 `;
                 taskList.appendChild(li);
@@ -256,20 +308,12 @@
         }
     }
 
-    // --- メモ一覧（整序機能付き） ---
+    // --- メモ一覧 ---
     function renderMemoGrid() {
         memoGrid.innerHTML = '';
-        
-        // セレクトボックスの値（newest または oldest）を取得
         const sortOrder = memoSortSelect.value;
-        
-        // 日付キーを取得してソート
         const sortedDates = Object.keys(todoData).sort((a, b) => {
-            if (sortOrder === 'newest') {
-                return new Date(b) - new Date(a); // 新しい順
-            } else {
-                return new Date(a) - new Date(b); // 古い順
-            }
+            return sortOrder === 'newest' ? new Date(b) - new Date(a) : new Date(a) - new Date(b);
         });
         
         let count = 0;
@@ -284,7 +328,9 @@
                 let tasksHtml = '';
                 if (data.tasks && data.tasks.length > 0) {
                     tasksHtml = '<h4>この日のタスク:</h4><div class="inline-task-list">';
-                    data.tasks.forEach(t => { tasksHtml += `・ ${escapeHtml(t)}<br>`; });
+                    data.tasks.forEach(t => { 
+                        tasksHtml += `<div class="inline-task-item ${t.priority}">・ ${escapeHtml(t.text)}</div>`; 
+                    });
                     tasksHtml += '</div>';
                 }
 
@@ -302,12 +348,10 @@
 
                 card.onclick = () => {
                     if (card.classList.contains('open')) return;
-                    
                     document.querySelectorAll('.memo-card.open').forEach(c => {
                         c.classList.remove('open');
                         c.querySelector('.toggle-status-text').innerText = 'タップして開く';
                     });
-
                     card.classList.add('open');
                     card.querySelector('.toggle-status-text').innerText = '閉じる場合は他をタップ';
                 };
@@ -328,32 +372,67 @@
         switchTab('calendar');
     }
 
-    // --- 全タスクの描画 ---
+    // --- 3. 全タスクの描画（ソート・フィルタ機能付き） ---
     function renderAllTasks() {
         allTaskList.innerHTML = '';
-        const sortedDates = Object.keys(todoData).sort((a, b) => new Date(b) - new Date(a));
-        let count = 0;
+        
+        const sortOrder = taskSortSelect.value;
+        const filterValue = taskFilterSelect.value;
 
-        sortedDates.forEach(dateStr => {
+        // 全日付からタスクをフラットな配列として一本化して集約する
+        let taskArray = [];
+        Object.keys(todoData).forEach(dateStr => {
             const data = todoData[dateStr];
-            if (data && data.tasks && data.tasks.length > 0) {
-                data.tasks.forEach((taskText, index) => {
-                    count++;
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <div>
-                            <span style="font-size: 11px; color:#888; display:block;">${dateStr}</span>
-                            <span>${taskText}</span>
-                        </div>
-                        <button class="delete-btn" onclick="deleteTask(${index}, 'tasks', '${dateStr}')">削除</button>
-                    `;
-                    allTaskList.appendChild(li);
+            if (data && data.tasks) {
+                data.tasks.forEach((taskObj, originalIndex) => {
+                    taskArray.push({
+                        date: dateStr,
+                        text: taskObj.text,
+                        priority: taskObj.priority,
+                        index: originalIndex // 元の日付データ内でのインデックス（削除時に使用）
+                    });
                 });
             }
         });
 
-        if (count === 0) {
-            allTaskList.innerHTML = '<div class="no-data-msg">タスクはありません。</div>';
+        // フィルタ処理
+        if (filterValue !== 'all') {
+            taskArray = taskArray.filter(t => t.priority === filterValue);
+        }
+
+        // ソート（整序）処理
+        taskArray.sort((a, b) => {
+            if (sortOrder === 'newest') {
+                return new Date(b.date) - new Date(a.date);
+            } else if (sortOrder === 'oldest') {
+                return new Date(a.date) - new Date(b.date);
+            } else if (sortOrder === 'priority') {
+                // 高(high) -> 中(middle) -> 低(low) の順に数値化して比較
+                const weight = { high: 3, middle: 2, low: 1 };
+                if (weight[b.priority] !== weight[a.priority]) {
+                    return weight[b.priority] - weight[a.priority]; // 緊急度が高い順
+                }
+                return new Date(b.date) - new Date(a.date); // 同じ緊急度なら新しい日付順
+            }
+            return 0;
+        });
+
+        // 描画
+        taskArray.forEach(task => {
+            const li = document.createElement('li');
+            li.className = `priority-${task.priority}`;
+            li.innerHTML = `
+                <div>
+                    <span style="font-size: 11px; color:#666; display:block; font-weight:bold;">${task.date}</span>
+                    <span>${escapeHtml(task.text)}</span>
+                </div>
+                <button class="delete-btn" onclick="deleteTask(${task.index}, 'tasks', '${task.date}')">削除</button>
+            `;
+            allTaskList.appendChild(li);
+        });
+
+        if (taskArray.length === 0) {
+            allTaskList.innerHTML = '<div class="no-data-msg">該当するタスクはありません。</div>';
         }
     }
 
@@ -369,8 +448,13 @@
         const text = taskInput.value.trim();
         if (text === '') return;
 
+        // ラジオボタンから選択されている緊急度を取得
+        const priorityElement = document.querySelector('input[name="priority"]:checked');
+        const priority = priorityElement ? priorityElement.value : 'high';
+
         prepareDateKey();
-        todoData[selectedDateStr].tasks.push(text);
+        // テキストだけでなく緊急度もセットにしたオブジェクト形式で保存
+        todoData[selectedDateStr].tasks.push({ text: text, priority: priority });
         
         saveToLocalStorage();
         taskInput.value = '';
